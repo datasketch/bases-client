@@ -1,5 +1,5 @@
 {
-  "name": "bases-client",
+  "name": "@datasketch/bases-client",
   "version": "0.1.0",
   "description": "",
   "type": "module",
