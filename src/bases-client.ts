@@ -1,72 +1,93 @@
 import fetch from "cross-fetch";
-import { AuthenticationError, BasesClientError } from "./errors.js";
+import { AuthenticationError, BasesClientError } from "./errors";
 
 type Config = {
   org: string;
   db: string;
-  tbl: string;
+  token: string;
+  tbl?: string;
 };
 
 export default class BasesClient {
-  #config: Config & { token: string };
+  #config: Config
+  #currentTable: string | null = null;
   #authToken: string | null = null;
   #baseUrl = "https://bases.datasketch.co";
 
-  constructor(config: Config & { token: string }) {
-    this.#config = config;
+  constructor(config: Config) {
+    const { tbl, ...restConfig } = config;
+    this.#config = restConfig;
+    if (tbl) {
+      this.setTable(tbl);
+    }
   }
 
-  async #init(): Promise<void> {
-    if (!this.#authToken) {
-      try {
-        const response = await fetch(
-          "https://api.datasketch.co/v1/auth/bases",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(this.#config),
-          }
-        );
+  async setTable(tbl: string): Promise<void> {
+    if (this.#currentTable !== tbl) {
+      this.#currentTable = tbl;
+      this.#authToken = null;
+      await this.#authenticate();
+    }
+  }
 
-        if (!response.ok) {
-          if (response.status === 401) {
-            throw new AuthenticationError("Invalid credentials provided");
-          } else {
-            throw new BasesClientError(
-              `HTTP error: ${response.status} ${response.statusText}`
-            );
-          }
+  async #authenticate(): Promise<void> {
+    if (!this.#currentTable) {
+      throw new Error("Table not set. Call setTable() before making any requests.");
+    }
+    
+    try {
+      const response = await fetch(
+        "https://api.datasketch.co/v1/auth/bases",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...this.#config,
+            tbl: this.#currentTable
+          }),
         }
+      );
 
-        const data = await response.json();
-        const authToken = data.data;
-
-        if (!authToken) {
-          throw new AuthenticationError("Auth token not provided in response");
-        }
-
-        this.#authToken = authToken;
-      } catch (error) {
-        if (
-          error instanceof AuthenticationError ||
-          error instanceof BasesClientError
-        ) {
-          throw error;
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new AuthenticationError("Invalid credentials provided");
         } else {
           throw new BasesClientError(
-            `Failed to initialize client: ${
-              error instanceof Error ? error.message : String(error)
-            }`
+            `HTTP error: ${response.status} ${response.statusText}`
           );
         }
+      }
+
+      const data = await response.json();
+      const authToken = data.data;
+
+      if (!authToken) {
+        throw new AuthenticationError("Auth token not provided in response");
+      }
+
+      this.#authToken = authToken;
+    } catch (error) {
+      if (
+        error instanceof AuthenticationError ||
+        error instanceof BasesClientError
+      ) {
+        throw error;
+      } else {
+        throw new BasesClientError(
+          `Failed to authenticate: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        );
       }
     }
   }
 
   async #fetch(endpoint: string, options: RequestInit = {}): Promise<Response> {
-    await this.#init();
+    if (!this.#authToken) {
+      await this.#authenticate();
+    }
     const url = new URL(endpoint, this.#baseUrl);
     return fetch(url.toString(), {
       ...options,
