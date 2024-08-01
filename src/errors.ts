@@ -5,7 +5,7 @@ class BasesClientError extends Error {
     }
 }
 
-class AuthenticationError extends BasesClientError {
+class AuthenticationError extends Error {
     constructor(message: string) {
         super(message);
         this.name = 'AuthenticationError';
