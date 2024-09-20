@@ -103,19 +103,9 @@ await client.setTable('users');
 const allUsers = await client.getRecords();
 console.log('All users:', allUsers);
 
-// Insert a record
-const result = await client.insertRecords([{ name: 'Alice', email: 'alice@example.com' }]);
-
-const userId = result.inserted_ids[0]
-
 // Retrieve the record
 const user = await client.getRecord(userId);
-
-// Update the record
-await client.updateRecord(userId, { name: 'Alice Smith' });
-
-// Delete the record
-await client.deleteRecord(userId);
+console.log('User:', user);
 
 // Switch to a different table
 await client.setTable('products');

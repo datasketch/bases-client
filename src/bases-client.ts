@@ -8,6 +8,14 @@ type Config = {
   tbl?: string;
 };
 
+type Field = {
+  id: string
+  label: string
+  type: string
+  tbl: string
+  fld___id: string
+}
+
 export default class BasesClient {
   #config: Config;
   #currentTable: string | null = null;
@@ -19,7 +27,7 @@ export default class BasesClient {
     this.#config = restConfig;
     if (tbl) {
       this.#currentTable = tbl;
-    }    
+    }
   }
 
   async setTable(tbl: string): Promise<void> {
@@ -65,7 +73,7 @@ export default class BasesClient {
       if (!authToken) {
         throw new AuthenticationError("Auth token not provided in response");
       }
-      
+
       this.#authToken = authToken;
     } catch (error) {
       if (
@@ -75,8 +83,7 @@ export default class BasesClient {
         throw error;
       } else {
         throw new BasesClientError(
-          `Failed to authenticate: ${
-            error instanceof Error ? error.message : String(error)
+          `Failed to authenticate: ${error instanceof Error ? error.message : String(error)
           }`
         );
       }
@@ -92,87 +99,86 @@ export default class BasesClient {
     if (!this.#authToken) {
       await this.#authenticate();
     }
-    const url = new URL(endpoint, this.#baseUrl);    
+    const url = new URL(endpoint, this.#baseUrl);
     return fetch(url.toString(), {
       ...options,
       headers: {
         ...options.headers,
-        "x-dsktch-authorization": `Bearer ${this.#authToken}`,
+        "Authorization": `Bearer ${this.#authToken}`,
       },
     });
   }
 
-  async getRecords<T>(): Promise<T[]> {
-    const response = await this.#fetch("md");
+
+  async getRecords<T>(mapValues: boolean = true): Promise<{ data: T[], fields: Field[] }> {
+    const response = await this.#fetch("tables/data")
+
     if (!response.ok) {
       throw new BasesClientError(
         `HTTP error: ${response.status} ${response.statusText}`
       );
     }
-    return response.json();
+    const data = await response.json()
+    const { fields, data: records } = data
+
+    if (!mapValues) {
+      return records
+    }
+
+    const fieldMap = fields.reduce((acc: Record<string, string>, field: any) => {
+      acc[field.id] = field.label;
+      return acc;
+    }, {});
+
+    const mappedRecords = records.map((record: any) => {
+      const mappedRecord: Record<string, any> = {};
+      Object.keys(record).forEach((key) => {
+        if (fieldMap[key]) {
+          mappedRecord[fieldMap[key]] = record[key];
+        } else {
+          mappedRecord[key] = record[key];
+        }
+      });
+      return mappedRecord as T;
+    });
+
+    return { data: mappedRecords, fields };
+
   }
 
-  async getRecord<T>(id: string): Promise<T | null> {
+  async getRecord<T>(id: string, mapValues: boolean = true): Promise<{ data: T | null, fields: Field[] | null }> {
     const response = await this.#fetch(
-      `md/single?field=rcd___id&value=${encodeURIComponent(id)}`
-    );    
-    if (!response.ok) {
-      throw new BasesClientError(
-        `HTTP error: ${response.status} ${response.statusText}`
-      );
-    }
-    const data = await response.json();    
-    return data.length > 0 ? data[0] : null;
-  }
-
-  async insertRecords<T>(data: T): Promise<{ inserted_ids: string[] }> {
-    const response = await this.#fetch("md/insert", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ data }),
-    });
+      `tables/rows/get?id=${id}`
+    );
 
     if (!response.ok) {
       throw new BasesClientError(
         `HTTP error: ${response.status} ${response.statusText}`
       );
     }
-
-    const result = await response.json();
-    return { inserted_ids: result.inserted_ids };
-  }
-
-  async updateRecord<T>(id: string, data: Partial<T>): Promise<void> {
-    const response = await this.#fetch("md/update", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ id, data }),
-    });
-
-    if (!response.ok) {
-      throw new BasesClientError(
-        `HTTP error: ${response.status} ${response.statusText}`
-      );
+    const data = await response.json()
+    if (!mapValues) {
+      return data
     }
+    const { data: record, fields } = data
+
+    const fieldMap = fields.reduce((acc: Record<string, string>, field: any) => {
+      acc[field.id] = field.label;
+      return acc;
+    }, {});
+
+    const mappedRecord = Object.keys(record).reduce((acc: T, key) => {
+      if (fieldMap[key]) {
+        acc[fieldMap[key] as keyof T] = record[key];
+      } else {
+        acc[key as keyof T] = record[key];
+      }
+      return acc;
+    }, {} as T);
+
+    return { data: mappedRecord, fields }
+
   }
 
-  async deleteRecord(id: string): Promise<void> {
-    const response = await this.#fetch("md/delete", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ id }),
-    });
 
-    if (!response.ok) {
-      throw new BasesClientError(
-        `HTTP error: ${response.status} ${response.statusText}`
-      );
-    }
-  }
 }
