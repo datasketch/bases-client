@@ -161,8 +161,11 @@ export default class BasesClient {
       return data
     }
     const { data: record, fields } = data
+    if(record === null && fields === null){
+      return data
+    }
 
-    const fieldMap = fields.reduce((acc: Record<string, string>, field: any) => {
+    const fieldMap = fields?.reduce((acc: Record<string, string>, field: any) => {
       acc[field.id] = field.label;
       return acc;
     }, {});
@@ -178,6 +181,79 @@ export default class BasesClient {
 
     return { data: mappedRecord, fields }
 
+  }
+
+  async updateRecord<T>(id: string, data: T): Promise<{  success: boolean }> {
+    const response = await this.#fetch(`tables/rows/update`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id, data }),
+    });
+
+    if (!response.ok) {
+      throw new BasesClientError(
+        `HTTP error: ${response.status} ${response.statusText}`
+      );
+    }
+
+    return  response.json();
+    
+  }
+
+  async insertRecord<T>(data: T): Promise<{ success: boolean }> {    
+    const response = await this.#fetch("tables/rows/insert", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ data }),
+    });
+    if (!response.ok) {
+      throw new BasesClientError(
+        `HTTP error: ${response.status} ${response.statusText}`
+      );
+    }
+    return response.json()
+    
+  }
+
+  async insertRecords<T>(data: T[]): Promise<{ data: T[], fields: Field[], success: boolean }> {
+    const response = await this.#fetch("tables/upload-bulk-json", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ data }),
+    });
+
+    if (!response.ok) {
+      throw new BasesClientError(
+        `HTTP error: ${response.status} ${response.statusText}`
+      );
+    }
+
+    return  response.json();
+    
+  }
+
+  async deleteRecord(id: string): Promise<{ success: boolean }> {
+    const response = await this.#fetch(`tables/rows/delete`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id }),
+    });
+
+    if (!response.ok) {
+      throw new BasesClientError(
+        `HTTP error: ${response.status} ${response.statusText}`
+      );
+    }
+
+    return  response.json();
   }
 
 

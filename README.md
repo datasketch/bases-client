@@ -113,4 +113,20 @@ await client.setTable('products');
 // Now operations will be performed on the 'products' table
 const allProducts = await client.getRecords();
 console.log('All products:', allProducts);
+
+// Insert a record
+const result = await client.insertRecord({ name: 'Alice', email: 'alice@example.com' });
+
+const userId = result.inserted_ids[0]
+
+// Insert a records
+const result = await client.insertRecords([{ name: 'Alice', email: 'alice@example.com' },{ name: 'Sam', email: 'sam@example.com' }]);
+
+// Update the record
+await client.updateRecord(userId, { name: 'Alice Smith' });
+
+// Delete the record
+await client.deleteRecord(userId);
+
+
 ```
