@@ -110,17 +110,23 @@ const user = await client.getRecord(userId);
 console.log('User:', user);
 
 // Insert a record
-const result = await client.insertRecord({ name: 'Alice', email: 'alice@example.com' });
-
+let result = await client.insertRecord({ name: 'Alice', email: 'alice@example.com' });
+console.log(`Record inserted successfully: ${result.success}`);
 
 // Insert multiple records
-const result = await client.insertRecords([{ name: 'Alice', email: 'alice@example.com' },{ name: 'Sam', email: 'sam@example.com' }]);
+result = await client.insertRecords([
+  { name: 'Alice', email: 'alice@example.com' },
+  { name: 'Sam', email: 'sam@example.com' }
+]);
+console.log(`Multiple records inserted successfully: ${result.success}`);
 
 // Update the record
-const result = await client.updateRecord(userId, { name: 'Alice Smith' });
+result = await client.updateRecord(userId, { name: 'Alice Smith' });
+console.log(`Record updated successfully: ${result.success}`);
 
 // Delete the record
-const result = await client.deleteRecord(userId);
+result = await client.deleteRecord(userId);
+console.log(`Record deleted successfully: ${result.success}`);
 
 // Switch to a different table
 await client.setTable('products');

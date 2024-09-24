@@ -161,7 +161,7 @@ export default class BasesClient {
       return data
     }
     const { data: record, fields } = data
-    if(record === null){
+    if (record === null) {
       return data
     }
 
@@ -183,7 +183,7 @@ export default class BasesClient {
 
   }
 
-  async updateRecord<T>(id: string, data: T): Promise<{  success: boolean }> {
+  async updateRecord<T>(id: string, data: T): Promise<{ success: boolean }> {
     const response = await this.#fetch(`tables/rows/update`, {
       method: "POST",
       headers: {
@@ -197,12 +197,12 @@ export default class BasesClient {
         `HTTP error: ${response.status} ${response.statusText}`
       );
     }
-    const success = await response.json()    
-    return  {success};
-    
+    const success = await response.json()
+    return { success: true };
+
   }
 
-  async insertRecord<T>(data: T): Promise<{ success: boolean }> {    
+  async insertRecord<T>(data: T): Promise<{ success: boolean }> {
     const response = await this.#fetch("tables/rows/insert", {
       method: "POST",
       headers: {
@@ -216,11 +216,11 @@ export default class BasesClient {
       );
     }
     const success = await response.json()
-    return {success}
-    
+    return { success }
+
   }
 
-  async insertRecords<T>(data: T[]): Promise<{success: boolean }> {
+  async insertRecords<T>(data: T[]): Promise<{ success: boolean }> {
     const response = await this.#fetch("tables/upload-bulk-json", {
       method: "POST",
       headers: {
@@ -237,7 +237,7 @@ export default class BasesClient {
 
     const success = await response.json()
     return { success }
-    
+
   }
 
   async deleteRecord(id: string): Promise<{ success: boolean }> {
