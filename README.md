@@ -60,30 +60,32 @@ if (record) {
 }
 ```
 
-`insertRecords<T>(data: T[]): Promise<{ inserted_ids: string[] }>`
+`insertRecords<T>(data: T[]): Promise<{ success: boolean }>`
 
 Inserts new records into the current table.
 
 ```js
 const newRecord = { name: 'John Doe', age: 30 };
 const result = await client.insertRecords([newRecord]);
-console.log(`Inserted record ID: ${result.inserted_ids[0]}`);
+console.log(`Inserted record: ${result.success}`);
 ```
 
-`updateRecord<T>(id: string, data: Partial<T>): Promise<void>`
+`updateRecord<T>(id: string, data: Partial<T>): Promise<{ success: boolean }>`
 
 Updates an existing record in the current table.
 
 ```js
-await client.updateRecord('record-id', { age: 31 });
+const result = await client.updateRecord('record-id', { age: 31 });
+console.log(`Updated record: ${result.success}`);
 ```
 
-`deleteRecord(id: string): Promise<void>`
+`deleteRecord(id: string): Promise<{ success: boolean }>`
 
 Deletes a record from the current table.
 
 ```js
-await client.deleteRecord('record-id');
+const result = await client.deleteRecord('record-id');
+console.log(`Deleted record: ${result.success}`);
 ```
 
 #### Example
@@ -107,26 +109,24 @@ console.log('All users:', allUsers);
 const user = await client.getRecord(userId);
 console.log('User:', user);
 
+// Insert a record
+const result = await client.insertRecord({ name: 'Alice', email: 'alice@example.com' });
+
+
+// Insert multiple records
+const result = await client.insertRecords([{ name: 'Alice', email: 'alice@example.com' },{ name: 'Sam', email: 'sam@example.com' }]);
+
+// Update the record
+const result = await client.updateRecord(userId, { name: 'Alice Smith' });
+
+// Delete the record
+const result = await client.deleteRecord(userId);
+
 // Switch to a different table
 await client.setTable('products');
 
 // Now operations will be performed on the 'products' table
 const allProducts = await client.getRecords();
 console.log('All products:', allProducts);
-
-// Insert a record
-const result = await client.insertRecord({ name: 'Alice', email: 'alice@example.com' });
-
-const userId = result.inserted_ids[0]
-
-// Insert a records
-const result = await client.insertRecords([{ name: 'Alice', email: 'alice@example.com' },{ name: 'Sam', email: 'sam@example.com' }]);
-
-// Update the record
-await client.updateRecord(userId, { name: 'Alice Smith' });
-
-// Delete the record
-await client.deleteRecord(userId);
-
 
 ```

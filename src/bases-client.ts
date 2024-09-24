@@ -161,7 +161,7 @@ export default class BasesClient {
       return data
     }
     const { data: record, fields } = data
-    if(record === null && fields === null){
+    if(record === null){
       return data
     }
 
@@ -197,8 +197,8 @@ export default class BasesClient {
         `HTTP error: ${response.status} ${response.statusText}`
       );
     }
-
-    return  response.json();
+    const success = await response.json()    
+    return  {success};
     
   }
 
@@ -215,11 +215,12 @@ export default class BasesClient {
         `HTTP error: ${response.status} ${response.statusText}`
       );
     }
-    return response.json()
+    const success = await response.json()
+    return {success}
     
   }
 
-  async insertRecords<T>(data: T[]): Promise<{ data: T[], fields: Field[], success: boolean }> {
+  async insertRecords<T>(data: T[]): Promise<{success: boolean }> {
     const response = await this.#fetch("tables/upload-bulk-json", {
       method: "POST",
       headers: {
@@ -234,7 +235,8 @@ export default class BasesClient {
       );
     }
 
-    return  response.json();
+    const success = await response.json()
+    return { success }
     
   }
 
@@ -252,8 +254,8 @@ export default class BasesClient {
         `HTTP error: ${response.status} ${response.statusText}`
       );
     }
-
-    return  response.json();
+    const success = await response.json()
+    return { success }
   }
 
 
