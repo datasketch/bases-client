@@ -16,6 +16,14 @@ type Field = {
   fld___id: string
 }
 
+interface getRecordsProps {
+  mapValues?: boolean
+}
+
+interface getRecordProps extends getRecordsProps {
+  id: string
+}
+
 export default class BasesClient {
   #config: Config;
   #currentTable: string | null = null;
@@ -110,21 +118,21 @@ export default class BasesClient {
   }
 
 
-  async getRecords<T>(mapValues: boolean = true): Promise<{ data: T[], fields: Field[] }> {
+  async getRecords<T>(props: getRecordsProps): Promise<{ data: T[], fields: Field[] }> {
+    const { mapValues = true } = props || {};
     const response = await this.#fetch("tables/data")
-
     if (!response.ok) {
       throw new BasesClientError(
         `HTTP error: ${response.status} ${response.statusText}`
       );
     }
+    
     const data = await response.json()
-    const { fields, data: records } = data
-
     if (!mapValues) {
-      return records
+      return data
     }
-
+    
+    const { fields, data: records } = data
     const fieldMap = fields.reduce((acc: Record<string, string>, field: any) => {
       acc[field.id] = field.label;
       return acc;
@@ -146,7 +154,8 @@ export default class BasesClient {
 
   }
 
-  async getRecord<T>(id: string, mapValues: boolean = true): Promise<{ data: T | null, fields: Field[] | null }> {
+  async getRecord<T>(props: getRecordProps): Promise<{ data: T | null, fields: Field[] | null }> {
+    const { id, mapValues = true } = props || {};
     const response = await this.#fetch(
       `tables/rows/get?id=${id}`
     );
