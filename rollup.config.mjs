@@ -13,7 +13,7 @@ export default {
     plugins: [
         nodeResolve({
             browser: true,
-            preferBuiltins: false
+            preferBuiltins: true
         }),
         commonjs(),
         typescript(),

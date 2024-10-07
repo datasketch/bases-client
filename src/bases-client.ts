@@ -1,4 +1,4 @@
-import fetch from "cross-fetch";
+import 'cross-fetch/polyfill';
 import { AuthenticationError, BasesClientError } from "./errors";
 
 type Config = {
