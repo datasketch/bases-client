@@ -193,14 +193,13 @@ export default class BasesClient {
   }
 
   async getFields<T>(): Promise<Field[]> {
-    const response = await this.#fetch("tables/data")
+    const response = await this.#fetch("tables/fields")
     if (!response.ok) {
       throw new BasesClientError(
         `HTTP error: ${response.status} ${response.statusText}`
       );
     }
-    const data = await response.json()
-    return data.fields
+    return response.json()
   }
 
   async updateRecord<T>(id: string, data: T): Promise<{ success: boolean }> {
