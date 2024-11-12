@@ -1,28 +1,7 @@
 import 'cross-fetch/polyfill';
 import { AuthenticationError, BasesClientError } from "./errors";
+import { Config, Field, getRecordProps, getRecordsProps } from './types';
 
-type Config = {
-  org: string;
-  db: string;
-  token: string;
-  tbl?: string;
-};
-
-type Field = {
-  id: string
-  label: string
-  type: string
-  tbl: string
-  fld___id: string
-}
-
-interface getRecordsProps {
-  mapValues?: boolean
-}
-
-interface getRecordProps extends getRecordsProps {
-  id: string
-}
 
 export default class BasesClient {
   #config: Config;
@@ -217,8 +196,24 @@ export default class BasesClient {
       );
     }
     const success = await response.json()
-    return { success: true };
+    return { success };
+  }
 
+  async updateRecords<T>(data: T[]) {
+    const response = await this.#fetch('tables/rows/update-many', {
+      method: 'POST',
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ data })
+    })
+    if (!response.ok) {
+      throw new BasesClientError(
+        `HTTP error: ${response.status} ${response.statusText}`
+      );
+    }
+    const success = await response.json()
+    return { success };
   }
 
   async insertRecord<T>(data: T): Promise<{ success: boolean }> {
@@ -276,6 +271,4 @@ export default class BasesClient {
     const success = await response.json()
     return { success }
   }
-
-
 }
