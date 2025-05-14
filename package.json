@@ -1,6 +1,6 @@
 {
   "name": "@datasketch/bases-client",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "",
   "type": "module",
   "module": "dist/index.js",
