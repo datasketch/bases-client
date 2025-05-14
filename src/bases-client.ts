@@ -271,4 +271,80 @@ export default class BasesClient {
     const success = await response.json()
     return { success }
   }
+
+  async createView(id: string, table: string, type: string, config: object) {
+    const response = await this.#fetch("tables/viz/create", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ data: { id, table, type, config } }),
+    });
+
+    if (!response.ok) {
+      throw new BasesClientError(
+        `HTTP error: ${response.status} ${response.statusText}`
+      );
+    }
+
+    const success = await response.json()
+    return { success }
+  }
+
+  async updateView(id: string, config: object) {
+    const response = await this.#fetch("tables/viz/update", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ data: { id, config } }),
+    });
+
+    if (!response.ok) {
+      throw new BasesClientError(
+        `HTTP error: ${response.status} ${response.statusText}`
+      );
+    }
+
+    const success = await response.json()
+    return { success }
+  }
+
+  async deleteView(id: string) {
+    const response = await this.#fetch("tables/viz/delete", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ data: { id } }),
+    });
+
+    if (!response.ok) {
+      throw new BasesClientError(
+        `HTTP error: ${response.status} ${response.statusText}`
+      );
+    }
+
+    const success = await response.json()
+    return { success }
+  }
+
+  async getView(id: string) {
+    const response = await this.#fetch("tables/viz/get", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ data: { id } }),
+    });
+    if (!response.ok) {
+      throw new BasesClientError(
+        `HTTP error: ${response.status} ${response.statusText}`
+      );
+    }
+
+    const success = await response.json()
+    return { success }
+  }
+
 }
