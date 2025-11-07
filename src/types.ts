@@ -1,6 +1,4 @@
 export type Config = {
-  org: string;
-  db: string;
   token: string;
   tbl?: string;
 };
