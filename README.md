@@ -1,231 +1,368 @@
-# bases-client
+# @datasketch/bases-client
 
-Javascript client to interact with databases uploaded to [Datasketch](https://datasketch.co). This client is written in TypeScript and provides type definitions out of the box.
+A TypeScript client library for interacting with the Bases API service. This library provides a simple and type-safe interface for managing tables, records, fields, and views.
 
-```sh
-npm i @datasketch/bases-client
+## Installation
+
+```bash
+npm install @datasketch/bases-client
 ```
 
-## Usage
+## Quick Start
 
-### Importing
+```typescript
+import BasesClient from '@datasketch/bases-client';
 
-```js
-import { BasesClient } from '@datasketch/bases-client'
-```
-
-### Instantiation
-
-Create a new instance of `BasesClient` with a JWT token:
-
-```js
-// You need a pre-generated JWT token that contains your organization, database, and table information
-
+// Initialize the client with your token
 const client = new BasesClient({
-    token: 'your-jwt-token', // Required: JWT token with org, db, and tbl claims
-    tbl: 'initial-table'     // Optional: Override table from token
-})
+  token: 'your-api-token',
+  tbl: 'your-table-id' // Optional: can be set later
+});
+
+// If table wasn't set in constructor, set it before making requests
+await client.setTable('your-table-id');
+
+// Fetch all records
+const { data, fields } = await client.getRecords();
+console.log(data); // Array of records
+console.log(fields); // Array of field definitions
 ```
 
-**Note:** The JWT token should contain the following claims:
+## Configuration
 
-- `org`: Your organization name
-- `db`: Your database name
-- `tbl`: Your table name (optional, can be set via `setTable()`)
+The `BasesClient` constructor accepts a `Config` object:
 
-## API
-
-`setTable(tbl: string): Promise<void>`
-
-Sets the current table for subsequent operations.
-
-```js
-await client.setTable('new-table');
+```typescript
+type Config = {
+  token: string;  // Required: Your API authentication token
+  tbl?: string;   // Optional: Table ID (can be set later with setTable())
+};
 ```
 
-`getRecords<T>(props?: { mapValues?: boolean }): Promise<{ data: T[], fields: Field[] }>`
+## API Reference
 
-Retrieves all records from the current table. Returns both the data and field definitions.
+### Constructor
 
-```js
-const result = await client.getRecords();
-console.log(result.data);    // Array of records
-console.log(result.fields);  // Array of field definitions
-
-// With mapValues option (default: true)
-// When true, field IDs are mapped to field labels
-const result = await client.getRecords({ mapValues: true });
-// When false, returns raw data with field IDs
-const rawResult = await client.getRecords({ mapValues: false });
+```typescript
+new BasesClient(config: Config)
 ```
 
-`getRecord<T>(props: { id: string, mapValues?: boolean }): Promise<{ data: T | null, fields: Field[] | null }>`
+Creates a new BasesClient instance. If a table ID is provided in the config, authentication will happen automatically on the first request.
 
-Retrieves a single record by its ID. Returns both the record data and field definitions.
+### Methods
 
-```js
-const result = await client.getRecord({ id: 'record-id' });
-if (result.data) {
-  console.log(result.data);    // The record
-  console.log(result.fields);  // Field definitions
-} else {
-  console.log('Record not found');
-}
+#### `setTable(tbl: string): Promise<void>`
+
+Sets the active table for subsequent operations. If the table changes, the authentication token will be invalidated and a new one will be requested.
+
+```typescript
+await client.setTable('new-table-id');
 ```
 
-`insertRecord<T>(data: T): Promise<{ success: boolean }>`
+#### `getRecords<T>(props?: getRecordsProps): Promise<{ data: T[], fields: Field[] }>`
 
-Inserts a single record into the current table.
+Fetches all records from the current table.
 
-```js
-const newRecord = { name: 'John Doe', age: 30 };
-const result = await client.insertRecord(newRecord);
-console.log(`Inserted record: ${result.success}`);
+**Parameters:**
+- `props.mapValues` (optional, default: `true`): If `true`, maps field IDs to their labels in the returned data.
+
+**Returns:** An object containing:
+- `data`: Array of records of type `T`
+- `fields`: Array of field definitions
+
+**Example:**
+```typescript
+// With field mapping (default)
+const { data, fields } = await client.getRecords<MyRecordType>();
+// data will have keys as field labels
+
+// Without field mapping
+const { data, fields } = await client.getRecords<MyRecordType>({ mapValues: false });
+// data will have keys as field IDs
 ```
 
-`insertRecords<T>(data: T[]): Promise<{ success: boolean }>`
+#### `getRecord<T>(props: getRecordProps): Promise<{ data: T | null, fields: Field[] | null }>`
 
-Inserts multiple records into the current table.
+Fetches a single record by ID.
 
-```js
-const newRecords = [
-  { name: 'John Doe', age: 30 },
-  { name: 'Jane Smith', age: 25 }
-];
-const result = await client.insertRecords(newRecords);
-console.log(`Inserted records: ${result.success}`);
+**Parameters:**
+- `props.id` (required): The ID of the record to fetch
+- `props.mapValues` (optional, default: `true`): If `true`, maps field IDs to their labels
+
+**Returns:** An object containing:
+- `data`: The record of type `T`, or `null` if not found
+- `fields`: Array of field definitions, or `null` if record not found
+
+**Example:**
+```typescript
+const { data, fields } = await client.getRecord<MyRecordType>({ 
+  id: 'record-id-123' 
+});
 ```
 
-`updateRecord<T>(id: string, data: T): Promise<{ success: boolean }>`
+#### `getFields<T>(): Promise<Field[]>`
 
-Updates an existing record in the current table.
+Fetches all field definitions for the current table.
 
-```js
-const result = await client.updateRecord('record-id', { age: 31 });
-console.log(`Updated record: ${result.success}`);
+**Returns:** Array of field objects with the following structure:
+```typescript
+type Field = {
+  id: string;
+  label: string;
+  type: string;
+  tbl: string;
+  fld___id: string;
+};
 ```
 
-`updateRecords<T>(data: T[]): Promise<{ success: boolean }>`
-
-Updates multiple records in the current table. Records should include an `id` field.
-
-```js
-const updates = [
-  { id: 'record-id-1', name: 'John Doe Updated' },
-  { id: 'record-id-2', age: 32 }
-];
-const result = await client.updateRecords(updates);
-console.log(`Updated records: ${result.success}`);
-```
-
-`getFields<T>(): Promise<Field[]>`
-
-Retrieves all field definitions for the current table.
-
-```js
+**Example:**
+```typescript
 const fields = await client.getFields();
 console.log(fields); // Array of field definitions
 ```
 
-`deleteRecord(id: string): Promise<{ success: boolean }>`
+#### `insertRecord<T>(data: T): Promise<{ success: boolean }>`
 
-Deletes a record from the current table.
+Inserts a single record into the table.
 
-```js
-const result = await client.deleteRecord('record-id');
-console.log(`Deleted record: ${result.success}`);
+**Parameters:**
+- `data`: The record data to insert (type `T`)
+
+**Returns:** An object with a `success` boolean
+
+**Example:**
+```typescript
+const result = await client.insertRecord({
+  name: 'John Doe',
+  email: 'john@example.com'
+});
+console.log(result.success); // true if successful
 ```
 
-### Example
+#### `insertRecords<T>(data: T[]): Promise<{ success: boolean }>`
 
-```js
-// Create a client with JWT token
-// The token should contain org, db, and optionally tbl claims
-const client = new BasesClient({
-  token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' // Your JWT token
+Bulk inserts multiple records into the table.
+
+**Parameters:**
+- `data`: Array of records to insert (type `T[]`)
+
+**Returns:** An object with a `success` boolean
+
+**Example:**
+```typescript
+const result = await client.insertRecords([
+  { name: 'John Doe', email: 'john@example.com' },
+  { name: 'Jane Smith', email: 'jane@example.com' }
+]);
+```
+
+#### `updateRecord<T>(id: string, data: T): Promise<{ success: boolean }>`
+
+Updates a single record by ID.
+
+**Parameters:**
+- `id`: The ID of the record to update
+- `data`: The updated record data (type `T`)
+
+**Returns:** An object with a `success` boolean
+
+**Example:**
+```typescript
+const result = await client.updateRecord('record-id-123', {
+  name: 'Updated Name',
+  email: 'updated@example.com'
 });
+```
 
-// Set initial table (if not specified in token)
-await client.setTable('users');
+#### `updateRecords<T>(data: T[]): Promise<{ success: boolean }>`
 
-// Get all records
-const result = await client.getRecords();
-console.log('All users:', result.data);
-console.log('Field definitions:', result.fields);
+Bulk updates multiple records.
 
-// Get a single record
-const recordResult = await client.getRecord({ id: 'user-id-123' });
-if (recordResult.data) {
-  console.log('User:', recordResult.data);
-  console.log('Fields:', recordResult.fields);
+**Parameters:**
+- `data`: Array of records to update (type `T[]`). Each record should include an `id` field.
+
+**Returns:** An object with a `success` boolean
+
+**Example:**
+```typescript
+const result = await client.updateRecords([
+  { id: 'record-1', name: 'Updated Name 1' },
+  { id: 'record-2', name: 'Updated Name 2' }
+]);
+```
+
+#### `deleteRecord(id: string): Promise<{ success: boolean }>`
+
+Deletes a single record by ID.
+
+**Parameters:**
+- `id`: The ID of the record to delete
+
+**Returns:** An object with a `success` boolean
+
+**Example:**
+```typescript
+const result = await client.deleteRecord('record-id-123');
+```
+
+#### `createView(id: string, table: string, type: string, config: object): Promise<{ success: boolean }>`
+
+Creates a new view for a table.
+
+**Parameters:**
+- `id`: The view ID
+- `table`: The table ID
+- `type`: The view type
+- `config`: View configuration object
+
+**Returns:** An object with a `success` boolean
+
+**Example:**
+```typescript
+const result = await client.createView(
+  'view-id-123',
+  'table-id-456',
+  'chart',
+  { xAxis: 'date', yAxis: 'value' }
+);
+```
+
+#### `updateView(id: string, config: object): Promise<{ success: boolean }>`
+
+Updates an existing view's configuration.
+
+**Parameters:**
+- `id`: The view ID
+- `config`: Updated view configuration object
+
+**Returns:** An object with a `success` boolean
+
+**Example:**
+```typescript
+const result = await client.updateView('view-id-123', {
+  xAxis: 'new-date',
+  yAxis: 'new-value'
+});
+```
+
+#### `deleteView(id: string): Promise<{ success: boolean }>`
+
+Deletes a view by ID.
+
+**Parameters:**
+- `id`: The view ID
+
+**Returns:** An object with a `success` boolean
+
+**Example:**
+```typescript
+const result = await client.deleteView('view-id-123');
+```
+
+#### `getView(id: string): Promise<{ success: boolean }>`
+
+Fetches a view by ID.
+
+**Parameters:**
+- `id`: The view ID
+
+**Returns:** An object with a `success` boolean
+
+**Example:**
+```typescript
+const result = await client.getView('view-id-123');
+```
+
+## Error Handling
+
+The library throws two types of errors:
+
+### `AuthenticationError`
+
+Thrown when authentication fails (invalid credentials, missing token, etc.).
+
+```typescript
+import { AuthenticationError } from '@datasketch/bases-client';
+
+try {
+  await client.getRecords();
+} catch (error) {
+  if (error instanceof AuthenticationError) {
+    console.error('Authentication failed:', error.message);
+  }
+}
+```
+
+### `BasesClientError`
+
+Thrown for general API errors (HTTP errors, invalid responses, etc.).
+
+```typescript
+import { BasesClientError } from '@datasketch/bases-client';
+
+try {
+  await client.getRecords();
+} catch (error) {
+  if (error instanceof BasesClientError) {
+    console.error('API error:', error.message);
+  }
+}
+```
+
+## Field Mapping
+
+By default, the `getRecords()` and `getRecord()` methods map field IDs to their human-readable labels. This means:
+
+- **With `mapValues: true` (default)**: Record keys use field labels (e.g., `"Full Name"`, `"Email Address"`)
+- **With `mapValues: false`**: Record keys use field IDs (e.g., `"fld123"`, `"fld456"`)
+
+```typescript
+// Field labels as keys
+const { data } = await client.getRecords({ mapValues: true });
+// data[0] = { "Full Name": "John", "Email": "john@example.com" }
+
+// Field IDs as keys
+const { data } = await client.getRecords({ mapValues: false });
+// data[0] = { "fld123": "John", "fld456": "john@example.com" }
+```
+
+## TypeScript Support
+
+This library is written in TypeScript and provides full type definitions. You can use generic types to ensure type safety:
+
+```typescript
+interface User {
+  id: string;
+  name: string;
+  email: string;
 }
 
-// Get field definitions
-const fields = await client.getFields();
-console.log('Available fields:', fields);
+const client = new BasesClient({ token: 'your-token' });
+await client.setTable('users-table');
 
-// Insert a single record
-let insertResult = await client.insertRecord({ 
-  name: 'Alice', 
-  email: 'alice@example.com' 
+// Type-safe record fetching
+const { data } = await client.getRecords<User>();
+// data is typed as User[]
+
+// Type-safe record operations
+await client.insertRecord<User>({
+  id: '123',
+  name: 'John Doe',
+  email: 'john@example.com'
 });
-console.log(`Record inserted: ${insertResult.success}`);
-
-// Insert multiple records
-insertResult = await client.insertRecords([
-  { name: 'Alice', email: 'alice@example.com' },
-  { name: 'Sam', email: 'sam@example.com' }
-]);
-console.log(`Multiple records inserted: ${insertResult.success}`);
-
-// Update a record
-const updateResult = await client.updateRecord('user-id-123', { 
-  name: 'Alice Smith' 
-});
-console.log(`Record updated: ${updateResult.success}`);
-
-// Update multiple records
-const updateManyResult = await client.updateRecords([
-  { id: 'user-id-123', name: 'Alice Smith Updated' },
-  { id: 'user-id-456', age: 32 }
-]);
-console.log(`Records updated: ${updateManyResult.success}`);
-
-// Delete a record
-const deleteResult = await client.deleteRecord('user-id-123');
-console.log(`Record deleted: ${deleteResult.success}`);
-
-// Switch to a different table
-await client.setTable('products');
-
-// Now operations will be performed on the 'products' table
-const productsResult = await client.getRecords();
-console.log('All products:', productsResult.data);
 ```
 
-## Migration from v2.x
+## Authentication
 
-If you're upgrading from version 2.x, note the following breaking changes:
+The client automatically handles authentication using Bearer token authentication. When you make your first request (or when the table changes), the client will:
 
-1. **Config structure changed**: The `org` and `db` fields are no longer required. Only `token` (JWT) is needed:
+1. Send a POST request to `/auth/generate` with your credentials
+2. Receive an authentication token
+3. Use this token in the `Authorization` header for subsequent requests
 
-   ```js
-   // Old (v2.x)
-   new BasesClient({ org: 'org', db: 'db', token: 'token' })
-   
-   // New (v3.x)
-   new BasesClient({ token: 'jwt-token' })
-   ```
+The token is cached and reused until the table changes or the client is reinitialized.
 
-2. **Response structure**: `getRecords()` and `getRecord()` now return objects with `data` and `fields`:
+## License
 
-   ```js
-   // Old (v2.x)
-   const records = await client.getRecords(); // T[]
-   
-   // New (v3.x)
-   const result = await client.getRecords(); // { data: T[], fields: Field[] }
-   const records = result.data;
-   ```
+ISC
 
-3. **JWT tokens**: You must use pre-generated JWT tokens instead of API tokens. The JWT should contain `org`, `db`, and optionally `tbl` claims.
