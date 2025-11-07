@@ -15,8 +15,8 @@ export default class BasesClient {
     this.#config = restConfig;
 
     // Base URL para consultas a la API
-    // this.#baseUrl = "https://hddb-service.fly.dev";|
-    this.#baseUrl = "http://localhost:3001";
+    this.#baseUrl = "https://hddb-service.fly.dev";
+    
 
     // Auth URL (si es diferente, por defecto usa baseUrl)
     this.#authUrl = this.#baseUrl;
